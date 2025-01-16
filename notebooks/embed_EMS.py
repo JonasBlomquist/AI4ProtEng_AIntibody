@@ -59,7 +59,7 @@ df = df[["identifyer","chain AA"]]
 
 df = list(zip(*map(df.get, df[["identifyer","chain AA"]])))
 
-display(df)
+# display(df)
 
 
 # ## Embed 
@@ -84,7 +84,7 @@ model.eval()  # disables dropout for deterministic results
 #     ("protein2 with mask","KALTARQQEVFDLIRD<mask>ISQTGMPPTRAEIAQRLGFRSPNAAEEHLKALARKGVIEIVSGASRGIRLLQEE"),
 #     ("protein3",  "K A <mask> I S Q"),
 # ]
-data = df[0:10]
+data = df#[0:10]
 
 batch_labels, batch_strs, batch_tokens = batch_converter(data)
 
