@@ -331,6 +331,6 @@ dependencies:
   - zlib=1.3.1=hb9d3cd8_2
   - zstd=1.5.6=ha6fb4c9_0
   - pip:
-      - anarci==1.3
+      # - anarci==1.3
       - biopython==1.84
 prefix: /home/joblojo/miniforge3/envs/aintibody
