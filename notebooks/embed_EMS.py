@@ -21,7 +21,8 @@ import esm
 # In[2]:
 
 
-model, alphabet = torch.hub.load("facebookresearch/esm:main", "esm2_t33_650M_UR50D")
+# model, alphabet = torch.hub.load("facebookresearch/esm:main", "esm2_t33_650M_UR50D")
+
 
 
 # ## 
@@ -39,7 +40,7 @@ data_dir = os.path.join(work_dir, '../data')
 
 
 data = pd.read_excel(os.path.join(data_dir, 'external/antibody_info.xlsx'), header=1)
-display(data)
+# display(data)
 
 
 # In[5]:
@@ -68,8 +69,14 @@ df = list(zip(*map(df.get, df[["identifyer","chain AA"]])))
 
 # In[ ]:
 
+print("down/load model")
+torch.hub.set_dir(data_dir)
+model, alphabet = esm.pretrained.esm2_t30_150M_UR50D()
+#esm2_t33_650M_UR50D
+#esm2_t30_150M_UR50D
+#esm2_t12_35M_UR50D
+#esm2_t6_8M_UR50D
 
-model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
 batch_converter = alphabet.get_batch_converter()
 model.eval()  # disables dropout for deterministic results
 
@@ -90,13 +97,21 @@ batch_labels, batch_strs, batch_tokens = batch_converter(data)
 
 batch_lens = (batch_tokens != alphabet.padding_idx).sum(1)
 
+last_layer= sum(1 for layer in model.modules() if "trans" in str(type(layer)).lower())
+print("embeding")
+
+# if torch.cuda.is_available():
+#     batch_tokens = batch_tokens.cuda()
+#     model = model.cuda()
 # Extract per-residue representations (on CPU)
 # only the tokens are given the model, 
 # repr_layers only returns the 33 layers as representtion for every amino aids
 # return_contacts predicts contracts between AA
 with torch.no_grad():
-    results = model(batch_tokens, repr_layers=[33], return_contacts=True)
-token_representations = results["representations"][33]
+    results = model(batch_tokens, repr_layers=[last_layer], return_contacts=True)
+
+del results["logits"]
+del results["attentions"]
 
 # # Generate per-sequence representations via averaging
 # # NOTE: token 0 is always a beginning-of-sequence token, so the first residue is token 1.
@@ -124,7 +139,7 @@ token_representations = results["representations"][33]
 
 
 import pickle 
-
-with open("../data/interim/embed_EMS_650_seperate", 'wb') as f:
-    pickle.dump(results["representations"][33], f)
+print("saving")
+with open("../data/interim/embed_EMS_150_seperate", 'wb') as f:
+    pickle.dump(results, f)
 
