@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# In[16]:
+
+
 # # Classification
 
 # ## Imports
 
-# In[1]:
+
+# In[17]:
 
 
 import os
@@ -19,7 +23,8 @@ import esm
 import math
 
 
-# In[2]:
+# In[26]:
+
 
 # ## augments
 
@@ -42,7 +47,7 @@ parser.add_argument('--cc',
 parser.add_argument('--file', 
                     type=str, 
                     help="file to embed %(default)", 
-                    default="something")
+                    default="anti")
 parser.add_argument('--run_local', 
                     type=bool, 
                     help="to run local  %(default)", 
@@ -62,20 +67,45 @@ local_run = args.run_local
 
 
 
-#%%
+# In[33]:
+
 
 if local_run :
     print("using local seting")
+
+    ##### model options
+    # ESM-2 8M model     # 0 
+    # ESM-2 35M model   # 1
+    # ESM-2 150M model  # 2
+    # ESM-2 650M model  # 3
+    # ESM-2 3B model    # 4 
+    # ESM-2 15B model   # 5
     model_args = 4
-    cc_args = 1 # 0: sep, 1 together
+
+
+    ##### chain choce 
+    # 0: sep, 
+    # 1 together
+
+    # cc_args = 0  
+    cc_args = 1     
+
+    # file choice
+    # anti or cova as string
+    # file_args = "anti"
+    file_args = "cova" 
+    chains = ["sep","tog"][cc_args]
+    print(f"___{file_args=}__\n__{model_args=}___\n___chinas as: {chains=}___\n")
 
 
 
 if model_args not in range(6):
     print("model index not valid")
     if cc_args not in range(2):
-        print("cc choince not valid")
-        sys.exit()
+        print(f"cc choince not valid")
+        if file_args not in ["anti","cova"]:
+            print("lol")
+            # sys.exit()
 
 
 
@@ -90,21 +120,77 @@ if model_args not in range(6):
 
 # ## Data Load
 
-# In[3]:
+
+# In[187]:
 
 
 work_dir = os.getcwd()
 data_dir = os.path.join(work_dir, '../data')
 
+if file_args == "anti":
+    print("label file in excel format")
+    data = pd.read_excel(os.path.join(data_dir, 'external/antibody_info.xlsx'), header=1)
+elif file_args == "cova":
+    print("unlabel file in csv format")
+    data = pd.read_csv(os.path.join(data_dir, 'external/covabdab_search_results.csv'))
+else:
+    print("work in prgoess:")
 
-# In[4]:
 
 
-data = pd.read_excel(os.path.join(data_dir, 'external/antibody_info.xlsx'), header=1)
-# display(data)
+
+# In[183]:
 
 
-# In[5]:
+data.iloc[[96, 98, 101]]["VL"]
+
+
+# In[191]:
+
+
+### filter
+if file_args == "cova":
+    print("filtering for VL chains 'nan' ")
+    print("nan in these index")
+    where_na = data[data['VL'].isna()].index
+    print(where_na)
+
+    print(f"there were drops this many rows: {len(where_na)}")
+    data = data.dropna(subset=['VL'])
+
+
+
+
+
+# In[192]:
+
+
+#### # extacting file chains to embed
+
+if file_args == "anti":
+    print("geting chains in label")
+    
+    # get the name and chains
+    chains = data[["Antibody  Name","Heavy chain AA","Light chain AA"]]
+
+
+
+elif file_args == "cova":
+    print("geting chains in unlabel")
+
+
+    # get the name and chains
+    chains = data[["Name","VHorVHH","VL"]]
+    chains.columns = ["Antibody  Name","Heavy chain AA","Light chain AA"]
+
+else:
+    print("work in prgoess:")
+
+
+# display(df.head())
+
+
+# In[193]:
 
 
 #chain mode,
@@ -115,14 +201,14 @@ chain_choice = ["seperate","together"]
 chain_mode = chain_choice[cc_args]
 print(f"chain mode: {chain_mode} \n")
 
-
-# get the name and chains
-df = data[["Antibody  Name","Heavy chain AA","Light chain AA"]]
+df = chains
 
 # embed as septer
 if cc_args == 0: 
 
     print("________seting data long/seperate________\n\n")
+
+
     # pivot longer
     df = pd.melt(df, id_vars="Antibody  Name", value_vars=["Heavy chain AA","Light chain AA"],var_name = "Chain ID",value_name = "chain AA")
     # new identy colun, combi of antibody and chain name
@@ -134,7 +220,7 @@ if cc_args == 0:
 
 else: 
     # embed together with cls as divider
-
+    
     # Token to insert in the middle
     link_token = "<cls>"
 
@@ -154,13 +240,17 @@ else:
 
 
 # format to esm, list of tubles with (name, seq) 
-df = list(zip(*map(df.get, df[["identifyer","chain AA"]])))
+esm_input = list(zip(*map(df.get, df[["identifyer","chain AA"]])))
 
-# ## Embed 
 
-# #### ESM 650M
+
+###
+# display(esm_input[:2])
+
+
 
 # In[ ]:
+
 
 print("down/load model\n")
 torch.hub.set_dir(data_dir)
@@ -205,7 +295,8 @@ model.eval()  # disables dropout for deterministic results
 
 
 
-# In[14]:
+# In[ ]:
+
 
 batch_size = 10
 
@@ -217,12 +308,15 @@ batch_size = 10
 #     ("protein3",  "K A <mask> I S Q"),
 # ]
 
-data = df#[0:10]  # for testing local
+
+# 
+data_esm = esm_input#[0:10]  # for testing local
 
 
 
 # get label name, string length and boken of sequence
-batch_labels, batch_strs, batch_tokens = batch_converter(data)
+batch_labels, batch_strs, batch_tokens = batch_converter(data_esm)
+
 
 # used for sequence representaion.
 # batch_lens = (batch_tokens != alphabet.padding_idx).sum(1)
@@ -302,14 +396,21 @@ results = {"contacts" : concatenated_contacts,
 
 # In[ ]:
 
-model_name.split("_")
+
+model_used = model_name.split("_")[2]
 
 import pickle 
 print("saving")
-with open(f"../data/interim/embed_EMS_{model_name.split("_")[2]}_{chain_mode}", 'wb') as f:
+
+save_file = ""
+if file_args =="cova":
+    save_file = "cova_"
+
+with open(f"../data/interim/{save_file}embed_EMS_{model_used}_{chain_mode}", 'wb') as f:
     pickle.dump(results, f)
 
 
 print("done")
+
 
 # %%
