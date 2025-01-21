@@ -283,9 +283,6 @@ def get_model(model_args):
 
 
 
-model_name = esm2_model_names[model_args]
-print(f"model to use: {model_name}")
-
 model_path = data_dir+"/checkpoints/"+model_name+".pt"
 
 if True == os.path.isfile(model_path):
@@ -298,7 +295,13 @@ else:
     model, alphabet = get_model(model_args)
 
 
+# Push model to GPU if available
+if torch.cuda.is_available():
+    model = model.cuda()
+    print("Model moved to GPU")
 
+model_name = esm2_model_names[model_args]
+print(f"model to use: {model_name}")
 
 
 
@@ -331,6 +334,13 @@ data_esm = esm_input#[0:10]  # for testing local
 batch_labels, batch_strs, batch_tokens = batch_converter(data_esm)
 
 
+# Push tokens to GPU
+if torch.cuda.is_available():
+    batch_tokens = batch_tokens.cuda()
+
+print("Embedding data...")
+
+
 # used for sequence representaion.
 # batch_lens = (batch_tokens != alphabet.padding_idx).sum(1)
 
@@ -354,7 +364,8 @@ for batch_index in range(number_batches):
     if batch_index % 10 ==0:
         print(f"{(batch_index/number_batches)*100} % done")
 
-    batch_to_run = batch_tokens[batch_index*batch_size:(batch_index+1)*batch_size]
+    # batch_to_run = batch_tokens[batch_index*batch_size:(batch_index+1)*batch_size]
+    batch_to_run = batch_tokens[batch_index * batch_size:(batch_index + 1) * batch_size]
 
     # Extract per-residue representations (on CPU)
     # only the tokens are given the model, 
