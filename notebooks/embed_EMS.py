@@ -264,6 +264,25 @@ esm2_model_names = [
     'esm2_t48_15B_UR50D'    # ESM-2 15B model   # 5
 ]
 
+# Define a mapping of model arguments to their respective functions
+model_mapping = {
+    0: esm.pretrained.esm2_t6_8M_UR50D(),
+    1: esm.pretrained.esm2_t12_35M_UR50D(),
+    2: esm.pretrained.esm2_t30_150M_UR50D(),
+    3: esm.pretrained.esm2_t33_650M_UR50D(),
+    3: esm.pretrained.esm2_t36_3B_UR50D(),
+    5: esm.pretrained.esm2_t48_15B_UR50D(),
+}
+
+# Function to get the model
+def get_model(model_args):
+    if model_args in model_mapping:
+        return model_mapping[model_args]()
+    else:
+        raise ValueError(f"Invalid model_args: {model_args}. Must be one of {list(model_mapping.keys())}")
+
+
+
 model_name = esm2_model_names[model_args]
 print(f"model to use: {model_name}")
 
@@ -276,15 +295,9 @@ if True == os.path.isfile(model_path):
 else:
     # downloading
     print("download file")
-    model, alphabet = esm.pretrained.load_model_and_alphabet(model_name)
-    
+    model, alphabet = get_model(model_args)
 
-# model, alphabet = esm.pretrained.esm2_t6_8M_UR50D()
-# model, alphabet = esm.pretrained.esm2_t12_35M_UR50D()
-# model, alphabet = esm.pretrained.esm2_t30_150M_UR50D()
-# model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-# model, alphabet = esm.pretrained.esm2_t36_3B_UR50D()
-# model, alphabet = esm.pretrained.esm2_t48_15B_UR50D()
+
 
 
 
