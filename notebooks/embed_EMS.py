@@ -87,8 +87,8 @@ if local_run :
     # 0: sep, 
     # 1 together
 
-    # cc_args = 0  
-    cc_args = 1     
+    cc_args = 0  
+    # cc_args = 1     
 
     # file choice
     # anti or cova as string
@@ -266,12 +266,12 @@ esm2_model_names = [
 
 # Define a mapping of model arguments to their respective functions
 model_mapping = {
-    0: esm.pretrained.esm2_t6_8M_UR50D(),
-    1: esm.pretrained.esm2_t12_35M_UR50D(),
-    2: esm.pretrained.esm2_t30_150M_UR50D(),
-    3: esm.pretrained.esm2_t33_650M_UR50D(),
-    3: esm.pretrained.esm2_t36_3B_UR50D(),
-    5: esm.pretrained.esm2_t48_15B_UR50D(),
+    0: esm.pretrained.esm2_t6_8M_UR50D,
+    1: esm.pretrained.esm2_t12_35M_UR50D,
+    2: esm.pretrained.esm2_t30_150M_UR50D,
+    3: esm.pretrained.esm2_t33_650M_UR50D,
+    4: esm.pretrained.esm2_t36_3B_UR50D,
+    5: esm.pretrained.esm2_t48_15B_UR50D,
 }
 
 # Function to get the model
@@ -281,7 +281,7 @@ def get_model(model_args):
     else:
         raise ValueError(f"Invalid model_args: {model_args}. Must be one of {list(model_mapping.keys())}")
 
-
+model_name = esm2_model_names[model_args]
 
 model_path = data_dir+"/checkpoints/"+model_name+".pt"
 
