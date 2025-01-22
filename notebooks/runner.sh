@@ -5,13 +5,13 @@
 ### -- set the job Name --
 #BSUB -J embed_EMS
 ### -- ask for number of cores (default: 1) --
-#BSUB -n 8
+#BSUB -n 1
 # ### -- Select the resources: 1 gpu in exclusive process mode --
 # #BSUB -gpu "num=1:mode=exclusive_process"
 ### -- set walltime limit: hh:mm --  maximum 24 hours for GPU-queues right now
-#BSUB -W 5:30
+#BSUB -W 0:30
 # request 5GB of system-memory
-#BSUB -R "rusage[mem=10GB]"
+#BSUB -R "rusage[mem=700GB]"
 ### -- specify that the cores must be on the same host --
 #BSUB -R "span[hosts=1]"
 
@@ -52,7 +52,7 @@ conda activate gpu_tranform >> report.txt
 # command time python -u  clean_model.py --epocs = 50  --ll = 8 --heads = 4 --LR = 1e-05 --warmup = 4000  >> report.txt
 
 
-python -u embed_EMS.py --run_local False --file cova --model 4 --cc 1 >> report.txt
+python -u embed_EMS.py >> report.txt
 
 
 
