@@ -48,10 +48,18 @@ parser.add_argument('--file',
                     type=str, 
                     help="file to embed %(default)", 
                     default="anti")
-parser.add_argument('--run_local', 
+
+
+parser.add_argument('--token', 
+                    type=int, 
+                    help="token for linking 0:2,[cls,G*20,GGGGS*3] %(default)", 
+                    default=0)
+
+
+parser.add_argument('--seting', 
                     type=bool, 
-                    help="to run local  %(default)", 
-                    default=True)
+                    help="Use seting or not  %(default)", 
+                    default=False)
 
 # Parse the arguments
 args = parser.parse_args()
@@ -61,8 +69,9 @@ args = parser.parse_args()
 model_args = args.model
 cc_args = args.cc
 file_args = args.file
+token_args = args.token
 
-local_run = args.run_local
+run_seting = args.seting
 
 
 
@@ -70,7 +79,7 @@ local_run = args.run_local
 # In[33]:
 
 
-if local_run :
+if False == run_seting :
     print("using local seting")
 
     ##### model options
@@ -94,6 +103,10 @@ if local_run :
     # anti or cova as string
     # file_args = "anti"
     file_args = "cova" 
+
+
+    token_args = 1
+
     chains = ["sep","tog"][cc_args]
     print(f"___{file_args=}__\n__{model_args=}___\n___chinas as: {chains=}___\n")
 
@@ -139,10 +152,6 @@ else:
 
 
 
-# In[183]:
-
-
-data.iloc[[96, 98, 101]]["VL"]
 
 
 # In[191]:
@@ -222,7 +231,8 @@ else:
     # embed together with cls as divider
     
     # Token to insert in the middle
-    link_token = "<cls>"
+    link_tokens = ["<cls>","G"*20,"GGGGS"*3]
+    link_token = link_tokens[token_args]
 
     # concat wtih toek
     print(f"______seting data together with: {link_token}______\n\n")
@@ -298,7 +308,9 @@ else:
 # Push model to GPU if available
 if torch.cuda.is_available():
     model = model.cuda()
-    print("Model moved to GPU")
+    print("Model moved to GPU \n")
+else:
+    print("no cuda 4 u poor mann \n")
 
 model_name = esm2_model_names[model_args]
 print(f"model to use: {model_name}")
@@ -334,11 +346,6 @@ data_esm = esm_input#[0:10]  # for testing local
 batch_labels, batch_strs, batch_tokens = batch_converter(data_esm)
 
 
-# Push tokens to GPU
-if torch.cuda.is_available():
-    batch_tokens = batch_tokens.cuda()
-
-print("Embedding data...")
 
 
 # used for sequence representaion.
@@ -353,7 +360,7 @@ print("embeding")
 
 all_embeddings = []
 all_contacts = []
-
+all_atten = []
 
 number_batches = math.ceil(len(df)/batch_size)
 
@@ -361,11 +368,18 @@ number_batches = math.ceil(len(df)/batch_size)
 # number_batches = 2
 
 for batch_index in range(number_batches):
+    print(batch_index)
     if batch_index % 10 ==0:
         print(f"{(batch_index/number_batches)*100} % done")
 
     # batch_to_run = batch_tokens[batch_index*batch_size:(batch_index+1)*batch_size]
     batch_to_run = batch_tokens[batch_index * batch_size:(batch_index + 1) * batch_size]
+
+        
+    # Push tokens to GPU
+    if torch.cuda.is_available():
+        batch_to_run = batch_to_run.cuda()
+        print("Embedding data...")
 
     # Extract per-residue representations (on CPU)
     # only the tokens are given the model, 
@@ -375,8 +389,12 @@ for batch_index in range(number_batches):
     with torch.no_grad():
         results = model(batch_to_run, repr_layers=[last_layer], return_contacts=True)
     del results["logits"]
-    del results["attentions"]
 
+    # del results["attentions"]
+    if torch.cuda.is_available():
+        results = results.to("cpu")
+        print("Embedding data...")
+    torch.cuda.empty_cache()
 
     # Extract the embeddings from the model output (layer 33 for ESM-1b)
     embeddings = results['representations'][last_layer]  # Choose layer 33 for the embeddings
@@ -384,15 +402,18 @@ for batch_index in range(number_batches):
     # Concatenate embeddings for this batch
     all_embeddings.append(embeddings)
     all_contacts.append(results['contacts'])
+    # all_atten.append(results["attentions"])
 
 # Concatenate embeddings from all batches into a single tensor
 concatenated_embeddings = torch.cat(all_embeddings, dim=0)
 concatenated_contacts = torch.cat(all_contacts, dim=0)
-
+# concatenated_atten = torch.cat(all_atten, dim=0)
 
 
 results = {"contacts" : concatenated_contacts, 
-           "representations" : {last_layer :concatenated_embeddings}}
+           "representations" : {last_layer :concatenated_embeddings,},
+}
+        #    "attentions" : concatenated_atten}
 
 
 
@@ -430,7 +451,12 @@ save_file = ""
 if file_args =="cova":
     save_file = "cova_"
 
-with open(f"../data/interim/{save_file}embed_EMS_{model_used}_{chain_mode}", 'wb') as f:
+if cc_args == 1:
+    # Token to insert in the middle
+    link_tokens = ["<cls>","G","GGGGS"]
+    save_token = link_tokens[token_args]
+
+with open(f"../data/interim/{save_file}embed_EMS_{model_used}_{chain_mode}_{save_token}", 'wb') as f:
     pickle.dump(results, f)
 
 
