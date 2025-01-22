@@ -389,20 +389,38 @@ for batch_index in range(number_batches):
     with torch.no_grad():
         results = model(batch_to_run, repr_layers=[last_layer], return_contacts=True)
     del results["logits"]
-
     # del results["attentions"]
+
     if torch.cuda.is_available():
-        results = results.to("cpu")
+        # results = results.to("cpu")
         print("Embedding data...")
+        print(results['representations'][last_layer].device)
+        print(all_contacts.append(results['contacts']).device)
+        
     torch.cuda.empty_cache()
 
     # Extract the embeddings from the model output (layer 33 for ESM-1b)
     embeddings = results['representations'][last_layer]  # Choose layer 33 for the embeddings
 
     # Concatenate embeddings for this batch
-    all_embeddings.append(embeddings)
-    all_contacts.append(results['contacts'])
+    all_embeddings.append(embeddings.to("cpu"))
+    all_contacts.append(results['contacts'].to("cpu"))
+    
     # all_atten.append(results["attentions"])
+
+
+
+    if torch.cuda.is_available():
+        # Get GPU memory usage
+        total_memory = torch.cuda.get_device_properties(0).total_memory  # Total GPU memory
+        reserved_memory = torch.cuda.memory_reserved(0)  # Reserved by PyTorch
+        allocated_memory = torch.cuda.memory_allocated(0)  # Allocated by tensors
+        free_memory = reserved_memory - allocated_memory  # Free inside reserved memory
+
+        print(f"Total memory: {total_memory / 1024**2:.2f} MB")
+        print(f"Reserved memory: {reserved_memory / 1024**2:.2f} MB")
+        print(f"Allocated memory: {allocated_memory / 1024**2:.2f} MB")
+        print(f"Free memory: {free_memory / 1024**2:.2f} MB")
 
 # Concatenate embeddings from all batches into a single tensor
 concatenated_embeddings = torch.cat(all_embeddings, dim=0)
