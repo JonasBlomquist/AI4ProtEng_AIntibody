@@ -395,7 +395,7 @@ for batch_index in range(number_batches):
         # results = results.to("cpu")
         print("Embedding data...")
         print(results['representations'][last_layer].device)
-        print(all_contacts.append(results['contacts']).device)
+        print(results['contacts'].device)
         
     torch.cuda.empty_cache()
 
@@ -408,7 +408,8 @@ for batch_index in range(number_batches):
     
     # all_atten.append(results["attentions"])
 
-
+    del results
+    del embeddings
 
     if torch.cuda.is_available():
         # Get GPU memory usage
