@@ -89,23 +89,23 @@ if False == run_seting :
     # ESM-2 650M model  # 3
     # ESM-2 3B model    # 4 
     # ESM-2 15B model   # 5
-    model_args = 4
+    model_args = 0
 
 
     ##### chain choce 
     # 0: sep, 
     # 1 together
 
-    cc_args = 0  
-    # cc_args = 1     
+    # cc_args = 0  
+    cc_args = 1     
 
     # file choice
     # anti or cova as string
-    # file_args = "anti"
-    file_args = "cova" 
+    file_args = "anti"
+    # file_args = "cova" 
 
 
-    token_args = 1
+    token_args = 0
 
     chains = ["sep","tog"][cc_args]
     print(f"___{file_args=}__\n__{model_args=}___\n___chinas as: {chains=}___\n")
@@ -368,7 +368,8 @@ number_batches = math.ceil(len(df)/batch_size)
 # number_batches = 2
 
 for batch_index in range(number_batches):
-    print(batch_index)
+
+
     if batch_index % 10 ==0:
         print(f"{(batch_index/number_batches)*100} % done")
 
@@ -379,7 +380,7 @@ for batch_index in range(number_batches):
     # Push tokens to GPU
     if torch.cuda.is_available():
         batch_to_run = batch_to_run.cuda()
-        print("Embedding data...")
+
 
     # Extract per-residue representations (on CPU)
     # only the tokens are given the model, 
@@ -389,7 +390,7 @@ for batch_index in range(number_batches):
     with torch.no_grad():
         results = model(batch_to_run, repr_layers=[last_layer], return_contacts=True)
     del results["logits"]
-    # del results["attentions"]
+    del results["attentions"]
 
     if torch.cuda.is_available():
         # results = results.to("cpu")
@@ -400,16 +401,16 @@ for batch_index in range(number_batches):
     torch.cuda.empty_cache()
 
     # Extract the embeddings from the model output (layer 33 for ESM-1b)
-    embeddings = results['representations'][last_layer]  # Choose layer 33 for the embeddings
+    embeddings = results['representations'][last_layer].to("cpu")  # Choose layer 33 for the embeddings
+    contrast = results['contacts'].to("cpu")
 
     # Concatenate embeddings for this batch
-    all_embeddings.append(embeddings.to("cpu"))
-    all_contacts.append(results['contacts'].to("cpu"))
-    
+    all_embeddings.append(embeddings)
+    all_contacts.append(contrast)
     # all_atten.append(results["attentions"])
 
     del results
-    del embeddings
+
 
     if torch.cuda.is_available():
         # Get GPU memory usage
@@ -429,9 +430,9 @@ concatenated_contacts = torch.cat(all_contacts, dim=0)
 # concatenated_atten = torch.cat(all_atten, dim=0)
 
 
+print("model done")
 results = {"contacts" : concatenated_contacts, 
-           "representations" : {last_layer :concatenated_embeddings,},
-}
+           "representations" : {last_layer :concatenated_embeddings,},}
         #    "attentions" : concatenated_atten}
 
 
@@ -472,10 +473,12 @@ if file_args =="cova":
 
 if cc_args == 1:
     # Token to insert in the middle
-    link_tokens = ["<cls>","G","GGGGS"]
+    link_tokens = ["_<cls>","_G","_GGGGS"]
     save_token = link_tokens[token_args]
+else:
+    save_token = ""
 
-with open(f"../data/interim/{save_file}embed_EMS_{model_used}_{chain_mode}_{save_token}", 'wb') as f:
+with open(f"../data/interim/{save_file}embed_EMS_{model_used}_{chain_mode}{save_token}", 'wb') as f:
     pickle.dump(results, f)
 
 
@@ -483,3 +486,197 @@ print("done")
 
 
 # %%
+
+
+
+
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Data preparation
+data = [
+    [0.36656891495601174, '8M', 'together', 'full_seq', '<cls>'],
+    [0.36803519061583588, '8M', 'together', 'cdr', '<cls>'],
+    [0.36070381231671556, '8M', 'together', 'full_seq', '_G'],
+    [0.37536656891495680, '8M', 'together', 'cdr', '_G'],
+    [0.35043988269794724, '8M', 'together', 'full_seq', '_GGGGS'],
+    [0.36950146627565983, '8M', 'together', 'cdr', '_GGGGS'],
+    [0.32991202346041054, '8M', 'separate', 'full_seq', '_GGGGS'],
+    [0.35777126099706746, '8M', 'separate', 'cdr', '_GGGGS'],
+    [0.36656891495601174, '35M', 'together', 'full_seq', '<cls>'],
+    [0.37829912023460413, '35M', 'together', 'cdr', '<cls>'],
+    [0.35043988269794724, '35M', 'together', 'full_seq', '_G'],
+    [0.36803519061583583, '35M', 'together', 'cdr', '_G'],
+    [0.36950146627565983, '35M', 'together', 'full_seq', '_GGGGS'],
+    [0.38269794721407624, '35M', 'together', 'cdr', '_GGGGS'],
+    [0.34457478005865105, '35M', 'separate', 'full_seq', '_GGGGS'],
+    [0.38709677419354843, '35M', 'separate', 'cdr', '_GGGGS'],
+    [0.35630498533724341, '150M', 'together', 'full_seq', '<cls>'],
+    [0.37976539589442815, '150M', 'together', 'cdr', '<cls>'],
+    [0.36363636363636365, '150M', 'together', 'full_seq', '_G'],
+    [0.37096774193548391, '150M', 'together', 'cdr', '_G'],
+    [0.34310850439882695, '150M', 'together', 'full_seq', '_GGGGS'],
+    [0.37683284457478006, '150M', 'together', 'cdr', '_GGGGS'],
+    [0.35190615835777131, '150M', 'separate', 'full_seq', '_GGGGS'],
+    [0.36510263929618771, '150M', 'separate', 'cdr', '_GGGGS'],
+    [0.3944281524926686, '3B', 'together', 'full_seq', '<cls>'],
+    [0.41055718475073316, '3B', 'together', 'cdr', '<cls>'],
+    [0.37976539589442815, '3B', 'separate', 'full_seq', '<cls>'],
+    [0.40762463343108507, '3B', 'separate', 'cdr', '<cls>'],
+    [0.28152492668621704, 'blum', '', 'full_seq', ''],
+    [0.23900293255131966, 'blum', '', 'cdr', '']
+]
+
+newdata=[]
+
+for index, line in enumerate(data):
+    lineappend=line
+    if line[2] == "separate":
+        lineappend = line[:4]
+        # print(line)
+        lineappend.append("")
+    newdata.append(lineappend)
+
+newdata = data
+# Convert to DataFrame for easier manipulation
+df = pd.DataFrame(data, columns=['Value', 'M', 'Type', 'SeqType', 'Label'])
+
+# Set up plot
+plt.figure(figsize=(10, 6))
+
+# Define colors for different linkers
+linker_colors = {
+    '_G': 'green',
+    '_GGGGS': 'orange',
+    '<cls>': 'blue',
+}
+
+# Define a color for 'cdr' (for the line)
+cdr_line_color = 'red'
+other_line_color = 'black'
+
+# Plot each combination of SeqType, Type, and M
+for (seq_type, typ) in df[['SeqType', 'Type']].drop_duplicates().values:
+    subset = df[(df['SeqType'] == seq_type) & (df['Type'] == typ)]
+    
+    # If it's a 'together' type, split by 'Label' and color the points
+    if typ == 'together':
+        for label in subset['Label'].unique():
+            label_subset = subset[subset['Label'] == label]
+            color = linker_colors.get(label, 'blue')  # Use color based on the linker
+            linestyle = 'dashed' if 'cdr' in label else 'solid'  # Dash lines for cdr
+            plt.plot(label_subset['M'], label_subset['Value'], 
+                     label=f'{seq_type} - {typ} - {label}', 
+                     marker='o', linestyle=linestyle, color=color)
+    else:
+        # Plot 'separate' as usual, with color for cdr line
+        color = linker_colors.get(subset['Label'].values[0], 'blue')  # Use color based on linker
+        linestyle = 'solid' if 'cdr' not in subset['Type'].values[0] else 'dashed'  # Line style for cdr
+        plt.plot(subset['M'], subset['Value'], label=f'{seq_type} - {typ}', marker='o', color=color, linestyle=linestyle)
+
+# Customize plot
+plt.title('Plot of Values by M Value')
+plt.xlabel('M Values')
+plt.ylabel('Value')
+
+# Adjust legend to handle the new labels properly
+plt.legend(title='Conditions', bbox_to_anchor=(1.05, 1), loc='upper left')
+
+# Rotate x-axis labels for clarity
+plt.xticks(rotation=45)
+plt.tight_layout()
+
+# Show the plot
+plt.show()
+#%%
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Data preparation
+data = [
+    [0.36656891495601174, '8M', 'together', 'full_seq', '<cls>'],
+    [0.36803519061583588, '8M', 'together', 'cdr', '<cls>'],
+    [0.36070381231671556, '8M', 'together', 'full_seq', '_G'],
+    [0.37536656891495680, '8M', 'together', 'cdr', '_G'],
+    [0.35043988269794724, '8M', 'together', 'full_seq', '_GGGGS'],
+    [0.36950146627565983, '8M', 'together', 'cdr', '_GGGGS'],
+    [0.32991202346041054, '8M', 'separate', 'full_seq', '_GGGGS'],
+    [0.35777126099706746, '8M', 'separate', 'cdr', '_GGGGS'],
+    [0.36656891495601174, '35M', 'together', 'full_seq', '<cls>'],
+    [0.37829912023460413, '35M', 'together', 'cdr', '<cls>'],
+    [0.35043988269794724, '35M', 'together', 'full_seq', '_G'],
+    [0.36803519061583583, '35M', 'together', 'cdr', '_G'],
+    [0.36950146627565983, '35M', 'together', 'full_seq', '_GGGGS'],
+    [0.38269794721407624, '35M', 'together', 'cdr', '_GGGGS'],
+    [0.34457478005865105, '35M', 'separate', 'full_seq', '_GGGGS'],
+    [0.38709677419354843, '35M', 'separate', 'cdr', '_GGGGS'],
+    [0.35630498533724341, '150M', 'together', 'full_seq', '<cls>'],
+    [0.37976539589442815, '150M', 'together', 'cdr', '<cls>'],
+    [0.36363636363636365, '150M', 'together', 'full_seq', '_G'],
+    [0.37096774193548391, '150M', 'together', 'cdr', '_G'],
+    [0.34310850439882695, '150M', 'together', 'full_seq', '_GGGGS'],
+    [0.37683284457478006, '150M', 'together', 'cdr', '_GGGGS'],
+    [0.35190615835777131, '150M', 'separate', 'full_seq', '_GGGGS'],
+    [0.36510263929618771, '150M', 'separate', 'cdr', '_GGGGS'],
+    [0.3944281524926686, '3B', 'together', 'full_seq', '<cls>'],
+    [0.41055718475073316, '3B', 'together', 'cdr', '<cls>'],
+    [0.37976539589442815, '3B', 'separate', 'full_seq', '<cls>'],
+    [0.40762463343108507, '3B', 'separate', 'cdr', '<cls>'],
+    [0.28152492668621704, 'blum', '', 'full_seq', ''],
+    [0.23900293255131966, 'blum', '', 'cdr', '']
+]
+
+# Convert to DataFrame for easier manipulation
+df = pd.DataFrame(data, columns=['Value', 'M', 'Type', 'SeqType', 'Label'])
+
+# Set up plot
+plt.figure(figsize=(10, 6))
+
+# Define color for 'cdr' (red) and default for other types (blue)
+cdr_color = 'red'
+default_color = 'blue'
+
+# Define markers for each 'Label'
+marker_dict = {
+    '_G': 'o',  # Circle marker for '_G'
+    '_GGGGS': 's',  # Square marker for '_GGGGS'
+    '<cls>': 'D',  # Diamond marker for '<cls>'
+    '': 'X'  # Cross marker for 'blum'
+}
+
+# Plot each combination of SeqType, Type, and M
+for (seq_type, typ) in df[['SeqType', 'Type']].drop_duplicates().values:
+    subset = df[(df['SeqType'] == seq_type) & (df['Type'] == typ)]
+    
+    # Line style: solid for 'separate', dashed for 'together'
+    linestyle = 'solid' if typ == 'separate' else 'dashed'
+    
+    for label in subset['Label'].unique():
+        label_subset = subset[subset['Label'] == label]
+        
+        # Color the points by 'cdr' (red for 'cdr', blue for others)
+        color = cdr_color if 'cdr' in label else default_color
+        
+        # Use different markers based on linker type
+        marker = marker_dict.get(label, 'X')  # Default cross marker for unknown labels
+        
+        plt.plot(label_subset['M'], label_subset['Value'], 
+                 label=f'{seq_type} - {typ} - {label}' if typ == 'together' else f'{seq_type} - {typ}', 
+                 marker=marker, linestyle=linestyle, color=color)
+
+# Customize plot
+plt.title('Plot of Values by M Value')
+plt.xlabel('M Values')
+plt.ylabel('Value')
+
+# Adjust legend to handle the new labels properly
+plt.legend(title='Conditions', bbox_to_anchor=(1.05, 1), loc='upper left')
+
+# Rotate x-axis labels for clarity
+plt.xticks(rotation=45)
+plt.tight_layout()
+
+# Show the plot
+plt.show()
