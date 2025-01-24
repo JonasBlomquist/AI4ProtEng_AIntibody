@@ -1,19 +1,26 @@
 #!/bin/sh
 
+# echo hello >> test.txt
+# which python >> test.txt
 
-echo hello >> test.txt
-which python >> test.txt
+# t= which conda
+# echo $t
+# conda activate aipro
 
-for model in 0  
+
+k= which python
+echo  $k
+for model in 2
 do
 
->test1.txt
-python -u embed_EMS.py --seting True --model $model --cc  0  --file "anti"  >> test1.txt & 
+# >test1.txt
+# python -u embed_EMS.py --seting True --model $model --cc  0  --file "anti"  >> test1.txt & 
 
 
-for linker in 0 1 2 
+for linker in 1 2 
 do
 
+echo "hello"
 >test1.txt
 python -u embed_EMS.py --seting True --model $model --cc  1  --file "anti" --token $linker >> test1.txt  &
     
