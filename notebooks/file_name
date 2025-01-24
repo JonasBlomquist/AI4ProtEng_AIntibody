@@ -1,0 +1,44 @@
+0.366568914956011748M together _<cls> full_seq
+0.36803519061583588M together _<cls> cdr
+0.360703812316715568M together _G full_seq
+0.3753665689149568M together _G cdr
+0.350439882697947248M together _GGGGS full_seq
+0.369501466275659838M together _GGGGS cdr
+
+0.329912023460410548M seperate _GGGGS full_seq
+0.357771260997067468M seperate _GGGGS cdr
+
+
+0.3665689149560117435M together _<cls> full_seq
+0.378299120234604135M together _<cls> cdr
+0.3504398826979472435M together _G full_seq
+0.368035190615835835M together _G cdr
+0.3695014662756598335M together _GGGGS full_seq
+0.3826979472140762435M together _GGGGS cdr
+
+0.3445747800586510535M seperate _GGGGS full_seq
+0.387096774193548435M seperate _GGGGS cdr
+
+
+0.3563049853372434150M together _<cls> full_seq
+0.37976539589442815150M together _<cls> cdr
+0.36363636363636365150M together _G full_seq
+0.3709677419354839150M together _G cdr
+0.34310850439882695150M together _GGGGS full_seq
+0.37683284457478006150M together _GGGGS cdr
+
+0.3519061583577713150M seperate _GGGGS full_seq
+0.3651026392961877150M seperate _GGGGS cdr
+
+
+
+0.39442815249266863B together _<cls> full_seq
+0.410557184750733163B together _<cls> cdr
+
+0.379765395894428153B seperate _<cls> full_seq
+0.407624633431085073B seperate _<cls> cdr
+
+
+
+0.28152492668621704 blum full_seq
+0.23900293255131966 blu cdr
